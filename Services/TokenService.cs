@@ -1,12 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
+using JwtAspNet.Models;
 using Microsoft.IdentityModel.Tokens;
 
 namespace JwtAspNet.Services;
 
 public class TokenService 
 {
-    public string Create()
+    public string Create(User user)
     {
         var handler = new JwtSecurityTokenHandler();
         
@@ -19,11 +21,29 @@ public class TokenService
         var tokenDescriptor = new SecurityTokenDescriptor() 
         {
             SigningCredentials = credentials,
-            Expires = DateTime.UtcNow.AddHours(2) //Tempo não tão curto p/ ser chato ao usuario e nem tao longo para não ter perigo de roubo
+            Expires = DateTime.UtcNow.AddHours(2), //Tempo não tão curto p/ ser chato ao usuario e nem tao longo para não ter perigo de roubo
+            Subject = GenerateClaims(user)
         };   
-        
 
         var token = handler.CreateToken(tokenDescriptor);
         return handler.WriteToken(token);
+    }
+
+    //Payload
+    private static ClaimsIdentity GenerateClaims(User user) 
+    {
+        var ci = new ClaimsIdentity();
+
+        ci.AddClaim(new Claim("id", user.Id.ToString()));
+        ci.AddClaim(new Claim(ClaimTypes.Name, user.Email));
+        ci.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+        ci.AddClaim(new Claim(ClaimTypes.GivenName, user.Name));
+        ci.AddClaim(new Claim("image", user.Image));
+
+        foreach(var role in  user.Roles) 
+           ci.AddClaim(new Claim(ClaimTypes.Role, role));
+        
+
+        return ci;
     }
 }
